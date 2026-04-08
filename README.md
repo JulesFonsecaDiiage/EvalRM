@@ -1,40 +1,101 @@
-This is a Kotlin Multiplatform project targeting Android, Desktop (JVM).
+# EvalRM - KMP Rick and Morty Locations
 
-* [/composeApp](./composeApp/src) is for code that will be shared across your Compose Multiplatform applications.
-  It contains several subfolders:
-  - [commonMain](./composeApp/src/commonMain/kotlin) is for code that’s common for all targets.
-  - Other folders are for Kotlin code that will be compiled for only the platform indicated in the folder name.
-    For example, if you want to use Apple’s CoreCrypto for the iOS part of your Kotlin app,
-    the [iosMain](./composeApp/src/iosMain/kotlin) folder would be the right place for such calls.
-    Similarly, if you want to edit the Desktop (JVM) specific part, the [jvmMain](./composeApp/src/jvmMain/kotlin)
-    folder is the appropriate location.
+Application Kotlin Multiplatform (Android + Desktop) basee sur les endpoints `location` de Rick and Morty API.
 
-### Build and Run Android Application
+Objectif fonctionnel:
+- afficher un listing de locations
+- ouvrir le detail d'une location
+- mobile: navigation liste -> detail
+- desktop: ecran unique master-detail (liste gauche, detail droite)
 
-To build and run the development version of the Android app, use the run configuration from the run widget
-in your IDE’s toolbar or build it directly from the terminal:
-- on macOS/Linux
-  ```shell
-  ./gradlew :composeApp:assembleDebug
-  ```
-- on Windows
-  ```shell
-  .\gradlew.bat :composeApp:assembleDebug
-  ```
+## Stack technique
 
-### Build and Run Desktop (JVM) Application
+- Kotlin Multiplatform
+- Compose Multiplatform
+- Ktor Client (remote source)
+- kotlinx.serialization (parsing JSON)
+- Coroutines + StateFlow
 
-To build and run the development version of the desktop app, use the run configuration from the run widget
-in your IDE’s toolbar or run it directly from the terminal:
-- on macOS/Linux
-  ```shell
-  ./gradlew :composeApp:run
-  ```
-- on Windows
-  ```shell
-  .\gradlew.bat :composeApp:run
-  ```
+## Architecture (clean, par couches)
 
----
+Code partage dans `composeApp/src/commonMain/kotlin/com/example/evalrm`:
 
-Learn more about [Kotlin Multiplatform](https://www.jetbrains.com/help/kotlin-multiplatform-dev/get-started.html)…
+- `domain/`
+  - `model/Location.kt` modele metier
+  - `repository/LocationRepository.kt` contrat metier
+  - `usecase/` use cases de lecture liste/detail
+- `data/`
+  - `remote/` source distante Rick and Morty
+  - `local/` source locale en cache memoire
+  - `mapper/` mapping remote -> domain
+  - `repository/LocationRepositoryImpl.kt` implementation du contrat Domain
+- `presentation/`
+  - `list/` contract, store, ecran liste
+  - `detail/` contract, store, ecran detail
+  - `navigation/` navigation mobile centralisee
+  - `AppRoot.kt` orchestration UI mobile/desktop
+- `cross/audio/`
+  - contrat audio `AudioManager`
+  - `expect fun rememberAudioManager()`
+
+Code specifique plateforme:
+
+- `androidMain/`
+  - `cross/audio/AudioManager.android.kt`
+  - `cross/context/ContextExtensions.kt` (extension de `Context`)
+- `jvmMain/`
+  - `cross/audio/AudioManager.jvm.kt`
+  - `main.kt` (desktop mode master-detail)
+
+## UDF / MVI applique
+
+Chaque ecran suit un contrat explicite:
+- `UiState` = ce que l'UI rend
+- `Intent` = intentions utilisateur/systeme
+- `Store` = orchestration des actions, appels use cases, mise a jour du `StateFlow`
+
+Cette separation permet:
+- un rendu Compose simple
+- une logique testable hors composables
+- une lecture claire du flux d'etat
+
+## Strategie Data (2 sources + fetch)
+
+- Source 1: remote API (`RickAndMortyRemoteDataSource`)
+- Source 2: cache local memoire (`LocationLocalDataSource`)
+
+Fetch policy:
+1. lire le cache si disponible et `forceRefresh == false`
+2. sinon appeler l'API distante
+3. mapper en modele metier
+4. mettre a jour le cache
+
+Cette strategie est volontairement simple et defendable dans le temps imparti.
+
+## Cross-Native
+
+- `expect/actual` utilise pour l'audio:
+  - Android: `MediaActionSound`
+  - Desktop: `Toolkit.beep()`
+- extension Android `Context.audioManager()` pour construire le manager audio natif
+- l'audio est declenche lors de l'ouverture d'un detail (usage reel)
+
+## Injection de dependances
+
+DI manuelle via `core/AppDependencies.kt`:
+- point d'entree unique
+- graph explicite
+- faible complexite de configuration
+
+## Lancer le projet (Windows)
+
+```powershell
+.\gradlew.bat :composeApp:run
+.\gradlew.bat :composeApp:assembleDebug
+```
+
+## Lancer les tests
+
+```powershell
+.\gradlew.bat :composeApp:allTests
+```
