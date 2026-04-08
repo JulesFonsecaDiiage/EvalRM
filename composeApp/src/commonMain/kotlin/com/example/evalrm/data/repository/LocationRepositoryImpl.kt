@@ -6,6 +6,18 @@ import com.example.evalrm.data.remote.RickAndMortyRemoteDataSource
 import com.example.evalrm.domain.model.Location
 import com.example.evalrm.domain.repository.LocationRepository
 
+/**
+ * Implementation Data du contrat [LocationRepository].
+ *
+ * Politique de fetch (cas complexe cle de l'app):
+ * - `forceRefresh == false`  -> lecture prioritaire du cache local si disponible
+ * - `forceRefresh == true`   -> bypass cache et appel reseau immediat
+ * - apres un appel distant   -> mapping DTO -> Domain puis ecriture cache
+ *
+ * Cette strategie garde le Domain independant des details techniques:
+ * le contrat reste dans `domain/`, tandis que l'arbitrage local/remote est confine ici.
+ * Elle garantit aussi une coherence simple entre listing et detail en partageant le meme cache local.
+ */
 class LocationRepositoryImpl(
     private val remoteDataSource: RickAndMortyRemoteDataSource,
     private val localDataSource: LocationLocalDataSource,
