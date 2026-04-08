@@ -4,7 +4,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -19,19 +18,20 @@ import androidx.compose.ui.unit.dp
 import com.example.evalrm.cross.audio.rememberAudioManager
 import com.example.evalrm.domain.usecase.GetLocationDetailUseCase
 import com.example.evalrm.domain.usecase.GetLocationsUseCase
+import com.example.evalrm.presentation.designsystem.EvalRmTheme
 import com.example.evalrm.presentation.detail.LocationDetailIntent
 import com.example.evalrm.presentation.detail.LocationDetailScreen
-import com.example.evalrm.presentation.detail.LocationDetailStore
+import com.example.evalrm.presentation.detail.LocationDetailViewModel
 import com.example.evalrm.presentation.list.LocationListIntent
 import com.example.evalrm.presentation.list.LocationListScreen
-import com.example.evalrm.presentation.list.LocationListStore
+import com.example.evalrm.presentation.list.LocationListViewModel
 import com.example.evalrm.presentation.navigation.AppNavigator
 import com.example.evalrm.presentation.navigation.AppRoute
 import org.koin.core.context.GlobalContext
 
 @Composable
 fun AppRoot(isDesktop: Boolean) {
-    MaterialTheme {
+    EvalRmTheme {
         Surface(modifier = Modifier.fillMaxSize()) {
             val koin = remember { GlobalContext.get() }
             val getLocationsUseCase = remember(koin) { koin.get<GetLocationsUseCase>() }
@@ -40,15 +40,17 @@ fun AppRoot(isDesktop: Boolean) {
             val audioManager = rememberAudioManager()
             val scope = rememberCoroutineScope()
 
-            val listStore = remember(scope, getLocationsUseCase) { LocationListStore(getLocationsUseCase, scope) }
-            val detailStore = remember(scope, getLocationDetailUseCase) {
-                LocationDetailStore(getLocationDetailUseCase, scope)
+            val listViewModel = remember(scope, getLocationsUseCase) {
+                LocationListViewModel(getLocationsUseCase, scope)
             }
-            val listState by listStore.state.collectAsState()
-            val detailState by detailStore.state.collectAsState()
+            val detailViewModel = remember(scope, getLocationDetailUseCase) {
+                LocationDetailViewModel(getLocationDetailUseCase, scope)
+            }
+            val listState by listViewModel.state.collectAsState()
+            val detailState by detailViewModel.state.collectAsState()
 
             LaunchedEffect(Unit) {
-                listStore.onIntent(LocationListIntent.Load)
+                listViewModel.onIntent(LocationListIntent.Load)
             }
 
             if (isDesktop) {
@@ -56,11 +58,11 @@ fun AppRoot(isDesktop: Boolean) {
                 Row(modifier = Modifier.fillMaxSize()) {
                     LocationListScreen(
                         state = listState,
-                        onRetry = { listStore.onIntent(LocationListIntent.Retry) },
+                        onRetry = { listViewModel.onIntent(LocationListIntent.Retry) },
                         onLocationClick = { location ->
                             selectedId = location.id
                             audioManager.playLocationOpened()
-                            detailStore.onIntent(LocationDetailIntent.Load(location.id))
+                            detailViewModel.onIntent(LocationDetailIntent.Load(location.id))
                         },
                         selectedLocationId = selectedId,
                         modifier = Modifier
@@ -72,7 +74,7 @@ fun AppRoot(isDesktop: Boolean) {
                         onRetry = {
                             val id = selectedId
                             if (id != null) {
-                                detailStore.onIntent(LocationDetailIntent.Retry(id))
+                                detailViewModel.onIntent(LocationDetailIntent.Retry(id))
                             }
                         },
                         modifier = Modifier
@@ -86,11 +88,11 @@ fun AppRoot(isDesktop: Boolean) {
                     AppRoute.List -> {
                         LocationListScreen(
                             state = listState,
-                            onRetry = { listStore.onIntent(LocationListIntent.Retry) },
+                            onRetry = { listViewModel.onIntent(LocationListIntent.Retry) },
                             onLocationClick = { location ->
                                 navigator.openDetail(location.id)
                                 audioManager.playLocationOpened()
-                                detailStore.onIntent(LocationDetailIntent.Load(location.id))
+                                detailViewModel.onIntent(LocationDetailIntent.Load(location.id))
                             },
                             modifier = Modifier.fillMaxSize(),
                         )
@@ -100,7 +102,7 @@ fun AppRoot(isDesktop: Boolean) {
                         LocationDetailScreen(
                             state = detailState,
                             onBack = { navigator.backToList() },
-                            onRetry = { detailStore.onIntent(LocationDetailIntent.Retry(route.locationId)) },
+                            onRetry = { detailViewModel.onIntent(LocationDetailIntent.Retry(route.locationId)) },
                             modifier = Modifier.fillMaxSize(),
                         )
                     }

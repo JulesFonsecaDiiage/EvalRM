@@ -13,4 +13,3 @@ sealed interface LocationDetailIntent {
     data class Retry(val locationId: Int) : LocationDetailIntent
     data object Clear : LocationDetailIntent
 }
-

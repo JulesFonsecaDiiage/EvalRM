@@ -15,6 +15,7 @@ Objectif fonctionnel:
 - Ktor Client (remote source)
 - kotlinx.serialization (parsing JSON)
 - Coroutines + StateFlow
+- Koin (injection de dependances)
 
 ## Architecture (clean, par couches)
 
@@ -30,9 +31,10 @@ Code partage dans `composeApp/src/commonMain/kotlin/com/example/evalrm`:
   - `mapper/` mapping remote -> domain
   - `repository/LocationRepositoryImpl.kt` implementation du contrat Domain
 - `presentation/`
-  - `list/` contract, store, ecran liste
-  - `detail/` contract, store, ecran detail
+  - `list/` contract, viewmodel, ecran liste
+  - `detail/` contract, viewmodel, ecran detail
   - `navigation/` navigation mobile centralisee
+  - `designsystem/` tokens de couleurs, typographie, shapes et theme
   - `AppRoot.kt` orchestration UI mobile/desktop
 - `cross/audio/`
   - contrat audio `AudioManager`
@@ -52,12 +54,22 @@ Code specifique plateforme:
 Chaque ecran suit un contrat explicite:
 - `UiState` = ce que l'UI rend
 - `Intent` = intentions utilisateur/systeme
-- `Store` = orchestration des actions, appels use cases, mise a jour du `StateFlow`
+- `ViewModel` = orchestration des actions, appels use cases, mise a jour du `StateFlow`
 
 Cette separation permet:
-- un rendu Compose simple
-- une logique testable hors composables
+- un rendu Compose simple (Screen)
+- une logique testable hors composables (ViewModel)
 - une lecture claire du flux d'etat
+
+## Design System
+
+Le Design System est centralise dans `presentation/designsystem/`:
+- `ColorTokens.kt` pour les couleurs applicatives
+- `TypographyTokens.kt` pour la typographie
+- `ShapeTokens.kt` pour les formes
+- `EvalRmTheme.kt` pour appliquer ces tokens a toute l'UI
+
+`AppRoot.kt` applique `EvalRmTheme`, ce qui garantit une coherence visuelle sur Android et Desktop.
 
 ## Strategie Data (2 sources + fetch)
 
@@ -82,10 +94,13 @@ Cette strategie est volontairement simple et defendable dans le temps imparti.
 
 ## Injection de dependances
 
-DI manuelle via `core/AppDependencies.kt`:
-- point d'entree unique
-- graph explicite
-- faible complexite de configuration
+Koin est utilise pour assembler le graphe applicatif:
+- module commun: `core/di/AppModules.kt`
+- bootstrap commun: `core/di/KoinBootstrap.kt`
+- init Android: `androidMain/kotlin/com/example/evalrm/EvalRmApplication.kt`
+- init Desktop: `jvmMain/kotlin/com/example/evalrm/main.kt`
+
+La Presentation recupere les use cases via Koin puis les injecte dans les ViewModels.
 
 ## Lancer le projet (Windows)
 

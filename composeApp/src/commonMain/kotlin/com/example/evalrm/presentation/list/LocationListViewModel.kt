@@ -7,7 +7,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-class LocationListStore(
+class LocationListViewModel(
     private val getLocationsUseCase: GetLocationsUseCase,
     private val scope: CoroutineScope,
 ) {
@@ -37,4 +37,3 @@ class LocationListStore(
         }
     }
 }
-

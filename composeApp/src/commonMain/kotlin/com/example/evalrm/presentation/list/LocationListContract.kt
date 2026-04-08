@@ -12,4 +12,3 @@ sealed interface LocationListIntent {
     data object Load : LocationListIntent
     data object Retry : LocationListIntent
 }
-

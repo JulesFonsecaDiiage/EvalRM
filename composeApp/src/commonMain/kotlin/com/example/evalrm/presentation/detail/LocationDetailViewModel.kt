@@ -8,7 +8,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-class LocationDetailStore(
+class LocationDetailViewModel(
     private val getLocationDetailUseCase: GetLocationDetailUseCase,
     private val scope: CoroutineScope,
 ) {
